@@ -1,6 +1,6 @@
 import json
 from tqdm import tqdm
-from sentence_transformers import SentenceTransformer, models
+from sentence_transformers import SentenceTransformer
 import torch
 
 def load_document_corpus(documents_json, train_json):
@@ -68,6 +68,7 @@ def predict_for_questions(test_json, model, doc_embeddings, doc_urls, output_pat
 
     print(f"Predictions saved to {output_path}")
 
+
 if __name__ == "__main__":
     documents_json_path = "../documents.json"
     train_json_path = "../../training13b.json"
@@ -82,7 +83,7 @@ if __name__ == "__main__":
     #pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode_mean_tokens=True)
     #model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
-    model = SentenceTransformer("pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb")
+    model = SentenceTransformer("./fine_tuned_biobert")
 
     doc_texts = load_document_corpus(documents_json_path, train_json_path)
     doc_embeddings, doc_urls = build_index(doc_texts, model, device)
