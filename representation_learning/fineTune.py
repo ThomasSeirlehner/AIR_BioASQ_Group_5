@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     # Build dataset
     triplet_data = build_triplet_dataset(train_json_path, documents_json_path)
-    train_dataloader = DataLoader(triplet_data, shuffle=True, batch_size=16)
+    train_dataloader = DataLoader(triplet_data, shuffle=True, batch_size=64)
 
     # Define loss
     train_loss = losses.TripletLoss(model=model)
@@ -55,8 +55,9 @@ if __name__ == "__main__":
     # Fine-tune
     model.fit(
         train_objectives=[(train_dataloader, train_loss)],
-        epochs=2,
+        epochs=5,
         warmup_steps=100,
         show_progress_bar=True,
-        output_path="./fine_tuned_biobert"
+        output_path="./fine_tuned_biobert",
+        use_amp=True
     )
