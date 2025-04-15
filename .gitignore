@@ -175,3 +175,5 @@ cython_debug/
 
 
 nlp_env/
+
+representation_learning/fine_tuned_biobert/
