@@ -3,21 +3,10 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 import torch
 
-def load_document_corpus(documents_json, train_json):
+def load_document_corpus(documents_json):
     with open(documents_json, "r") as f:
         documents_data = json.load(f)
-    document_lookup = {doc["url"]: f"{doc['title']} {doc['abstract']}".strip() for doc in documents_data}
-
-    with open(train_json, "r") as f:
-        train_data = json.load(f)
-
-    documents = {}
-    for q in tqdm(train_data["questions"], desc="Collecting document texts"):
-        for doc_url in q.get("documents", []):
-            if doc_url not in documents and doc_url in document_lookup:
-                documents[doc_url] = document_lookup[doc_url]
-
-    return documents
+    return {doc["url"]: f"{doc['title']} {doc['abstract']}".strip() for doc in documents_data}
 
 def build_index(documents, model, device):
     doc_urls = list(documents.keys())
@@ -29,7 +18,8 @@ def build_index(documents, model, device):
         convert_to_tensor=True,
         show_progress_bar=True,
         device=device,
-        normalize_embeddings=True  # cosine similarity works better with normalized vectors
+        normalize_embeddings=True,
+        batch_size=32  # cosine similarity works better with normalized vectors
     ).to(device)
 
     return embeddings, doc_urls
@@ -79,9 +69,6 @@ if __name__ == "__main__":
     print(f"Using device: {device}")
 
     print("Loading BioLinkBERT model...")
-    #word_embedding_model = models.Transformer("michiyasunaga/BioLinkBERT-base")
-    #pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode_mean_tokens=True)
-    #model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
     model = SentenceTransformer("./fine_tuned_biobert")
 
