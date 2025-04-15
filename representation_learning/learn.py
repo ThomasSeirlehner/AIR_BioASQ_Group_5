@@ -58,20 +58,20 @@ def predict_for_questions(test_json, model, doc_embeddings, doc_urls, output_pat
 
     print(f"Predictions saved to {output_path}")
 
-
 if __name__ == "__main__":
     documents_json_path = "../documents.json"
-    train_json_path = "../../training13b.json"
-    test_json_path = "../../BioASQ-task13bPhaseA-testset1.json"
-    output_json_path = "../../predictions_biolinkbert_fast.json"
+    train_json_path = "../../training12b.json"
+    test_json_path = "../../BioASQ-TaskB-testData/BioASQ-TaskB-testData/phaseA_12b_01.json"
+    output_json_path = "../../predictions_biobert_phaseA_12b_01.json"
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
     print("Loading BioLinkBERT model...")
 
-    model = SentenceTransformer("./fine_tuned_biobert")
+    model = SentenceTransformer("./fine_tuned_biobert_hard_negatives")
+    #model = SentenceTransformer("pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb")
 
-    doc_texts = load_document_corpus(documents_json_path, train_json_path)
+    doc_texts = load_document_corpus(documents_json_path)
     doc_embeddings, doc_urls = build_index(doc_texts, model, device)
     predict_for_questions(test_json_path, model, doc_embeddings, doc_urls, output_json_path, device)
