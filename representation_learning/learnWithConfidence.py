@@ -56,7 +56,12 @@ def predict_for_questions(test_json, model, doc_embeddings, doc_urls, output_pat
         # Fallback: if no doc passes threshold, include the highest scoring doc
         if not top_docs:
             best_idx = top_k_indices[i][0].item()
-            top_docs.append(doc_urls[best_idx])
+            best_score = similarities[i, best_idx].item()
+
+            for j in top_k_indices[i].tolist():
+                if best_score - similarities[i, j].item() <= 0.1:
+                    top_docs.append(doc_urls[j])
+            
 
         output["questions"].append({
             "id": q_id,
