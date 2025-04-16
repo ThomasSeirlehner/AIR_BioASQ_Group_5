@@ -16,11 +16,11 @@ def load_training_triplets(training_json, documents_json):
 
     doc_lookup = {doc["url"]: f"{doc['title']} {doc['abstract']}".strip() for doc in documents}
 
-    # Collect all sentences for negatives using nltk sentence tokenizer
+    # Collect all possible negative candidate sentences (sentences or sentence groups)
     all_sentences = []
     for text in doc_lookup.values():
         sentences = nltk.sent_tokenize(text, language='english')
-        all_sentences.extend(sentences)
+        all_sentences.append(sentences)
 
     train_examples = []
     for q in tqdm(train_data["questions"], desc="Preparing triplets"):
@@ -28,11 +28,18 @@ def load_training_triplets(training_json, documents_json):
 
         for snippet in q.get("snippets", []):
             pos_text = snippet["text"]
+            pos_sent_count = len(nltk.sent_tokenize(pos_text, language='english'))
 
-            # Sample a negative (not equal to positive)
+            # Sample a negative: select random sentences group with roughly same number of sentences
             while True:
-                neg_text = random.choice(all_sentences)
-                if neg_text != pos_text:
+                candidate_sentences = random.choice(all_sentences)
+                if len(candidate_sentences) < pos_sent_count:
+                    continue
+                start_idx = random.randint(0, len(candidate_sentences) - pos_sent_count)
+                neg_text = ' '.join(candidate_sentences[start_idx:start_idx + pos_sent_count])
+
+                # Ensure it's different from the positive snippet text
+                if neg_text.strip() != pos_text.strip():
                     break
 
             train_examples.append(InputExample(texts=[q_text, pos_text, neg_text]))
@@ -42,7 +49,7 @@ def load_training_triplets(training_json, documents_json):
 if __name__ == "__main__":
     training_json_path = "../../training12b.json"
     documents_json_path = "../documents.json"
-    model_save_path = "./fine_tuned_biobert_snippets_triplet"
+    model_save_path = "./fine_tuned_biobert_snippets_triplet_multi"
 
     print("Loading training data...")
     train_examples = load_training_triplets(training_json_path, documents_json_path)
