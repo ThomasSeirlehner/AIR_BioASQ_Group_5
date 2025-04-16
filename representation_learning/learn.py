@@ -13,6 +13,11 @@ def load_document_corpus(documents_json):
         documents_data = json.load(f)
     return {doc["url"]: f"{doc['title']} {doc['abstract']}".strip() for doc in documents_data}
 
+def load_document_corpus_snippeds(documents_json):
+    with open(documents_json, "r") as f:
+        documents_data = json.load(f)
+    return {doc["url"]: {"title": doc["title"], "abstract": doc["abstract"]} for doc in documents_data}
+
 
 def build_index(documents, model, device):
     doc_urls = list(documents.keys())
@@ -61,7 +66,7 @@ def predict_documents(test_data, doc_retrieval_model, doc_embeddings, doc_urls, 
 
 
 def extract_snippets(predictions, documents_json, snippet_model, device, top_k_snippets=10):
-    doc_lookup = load_document_corpus(documents_json)
+    doc_lookup = load_document_corpus_snippeds(documents_json)
     tokenizer = PunktSentenceTokenizer()
 
     for prediction in tqdm(predictions, desc="Extracting snippets"):
@@ -75,27 +80,34 @@ def extract_snippets(predictions, documents_json, snippet_model, device, top_k_s
             if doc_url not in doc_lookup:
                 continue
 
-            doc_text = doc_lookup[doc_url]
-            sentences = tokenizer.tokenize(doc_text)
+            doc_sections = doc_lookup[doc_url]
 
-            window_sizes = [1, 2, 3]
+            section_sentences = {}
+            for section_name, section_text in doc_sections.items():
+                if section_text.strip():  # skip empty
+                    sentences = tokenizer.tokenize(section_text)
+                    section_sentences[section_name] = sentences
+
             candidate_snippets = []
 
-            for window_size in window_sizes:
-                if len(sentences) < window_size:
-                    continue
-                for j in range(len(sentences) - window_size + 1):
-                    snippet_text = ' '.join(sentences[j:j + window_size])
-                    offset_start = doc_text.find(sentences[j])
-                    offset_end = doc_text.find(sentences[j + window_size - 1]) + len(sentences[j + window_size - 1])
-                    candidate_snippets.append({
-                        "text": snippet_text,
-                        "offsetInBeginSection": offset_start,
-                        "offsetInEndSection": offset_end,
-                        "beginSection": "sections.0",
-                        "endSection": "sections.0",
-                        "document": doc_url
-                    })
+            for section_name, sentences in section_sentences.items():
+                window_sizes = [1, 2, 3]
+
+                for window_size in window_sizes:
+                    if len(sentences) < window_size:
+                        continue
+                    for j in range(len(sentences) - window_size + 1):
+                        snippet_text = ' '.join(sentences[j:j + window_size])
+                        offset_start = doc_sections[section_name].find(sentences[j])
+                        offset_end = doc_sections[section_name].find(sentences[j + window_size - 1]) + len(sentences[j + window_size - 1])
+                        candidate_snippets.append({
+                            "text": snippet_text,
+                            "offsetInBeginSection": offset_start,
+                            "offsetInEndSection": offset_end,
+                            "beginSection": section_name,
+                            "endSection": section_name,
+                            "document": doc_url
+                        })
 
             if candidate_snippets:
                 q_embedding_snippet = snippet_model.encode(
