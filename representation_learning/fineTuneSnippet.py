@@ -46,15 +46,34 @@ def load_training_triplets(training_json, documents_json):
 
     return train_examples
 
+def load_training_pairs(training_json, documents_json):
+    with open(training_json, "r") as f:
+        train_data = json.load(f)
+    with open(documents_json, "r") as f:
+        documents = json.load(f)
+
+    doc_lookup = {doc["url"]: f"{doc['title']} {doc['abstract']}".strip() for doc in documents}
+
+    train_examples = []
+    for q in tqdm(train_data["questions"], desc="Preparing pairs"):
+        q_text = q["body"]
+
+        for snippet in q.get("snippets", []):
+            pos_text = snippet["text"]
+            train_examples.append(InputExample(texts=[q_text, pos_text]))
+
+    return train_examples
+
 if __name__ == "__main__":
-    training_json_path = "../../training12b.json"
+    training_json_path = "../../training13b.json"
     documents_json_path = "../documents.json"
-    model_save_path = "./fine_tuned_biobert_snippets_triplet_multi"
+    model_save_path = "./models/fine_tuned_biobert_snippets_triplet_035_training_13b"
 
     print("Loading training data...")
     train_examples = load_training_triplets(training_json_path, documents_json_path)
-
-    print(f"Total triplets: {len(train_examples)}")
+    #train_examples = load_training_pairs(training_json_path, documents_json_path)
+    
+    print(f"Total pairs: {len(train_examples)}")
 
     print("Loading base BioBERT model...")
     model = SentenceTransformer("pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb")
@@ -62,12 +81,13 @@ if __name__ == "__main__":
     train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
 
     # Triplet loss (anchor, positive, negative)
-    train_loss = losses.TripletLoss(model)
+    train_loss = losses.TripletLoss(model, triplet_margin= 0.35)
+    #train_loss = losses.MultipleNegativesRankingLoss(model, scale=40)
 
     print("Starting fine-tuning with Triplet Loss...")
     model.fit(
         train_objectives=[(train_dataloader, train_loss)],
-        epochs=2,
+        epochs=5,
         warmup_steps=100,
         output_path=model_save_path,
         show_progress_bar=True,
