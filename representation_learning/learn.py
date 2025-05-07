@@ -9,12 +9,12 @@ nltk.download('punkt')
 
 
 def load_document_corpus(documents_json):
-    with open(documents_json, "r") as f:
+    with open(documents_json, "r", encoding='utf-8') as f:
         documents_data = json.load(f)
     return {doc["url"]: f"{doc['title']} {doc['abstract']}".strip() for doc in documents_data}
 
 def load_document_corpus_snippeds(documents_json):
-    with open(documents_json, "r") as f:
+    with open(documents_json, "r", encoding='utf-8') as f:
         documents_data = json.load(f)
     return {doc["url"]: {"title": doc["title"], "abstract": doc["abstract"]} for doc in documents_data}
 
@@ -136,19 +136,19 @@ def extract_snippets(predictions, documents_json, snippet_model, device, top_k_s
 
 if __name__ == "__main__":
     documents_json_path = "../documents.json"
-    test_json_path = "../../BioASQ-TaskB-testData/BioASQ-TaskB-testData/phaseA_12b_04.json"
-    output_json_path = "../../results_biobert_phaseA_12b_04.json"
+    test_json_path = "../../BioASQ-task13bPhaseA-testset4.json"
+    output_json_path = "../../results_biobert_BioASQ-task13bPhaseA-testset4.json"
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
     print("Loading document retrieval model...")
-    doc_retrieval_model = SentenceTransformer("pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb")
+    doc_retrieval_model = SentenceTransformer("./models/fine_tuned_biobert_Double_30_training_13b")
 
     print("Loading fine-tuned snippet selection model...")
-    snippet_model = SentenceTransformer("./fine_tuned_biobert_snippets_triplet")
+    snippet_model = SentenceTransformer("./models/fine_tuned_biobert_snippets_triplet_035_training_13b")
 
-    with open(test_json_path, "r") as f:
+    with open(test_json_path, "r", encoding='utf-8') as f:
         test_data = json.load(f)
 
     doc_texts = load_document_corpus(documents_json_path)
